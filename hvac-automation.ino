@@ -98,7 +98,6 @@ void fanButton(int direction) {
     
     int thePin = upPin;
     if (direction == -1) {
-      debugPrintln("Not currently implemented");
       thePin = downPin;
     }
 
