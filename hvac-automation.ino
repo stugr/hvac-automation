@@ -90,7 +90,7 @@ void loop() {
 
 void fanButton(int direction) {
   // if already at upper or lower bounds (0-3) don't do anything
-  if ((fanSpeed == 0 && direction == -1) || (fanSpeed == 3 && direction == 1)) {
+  if ((fanSpeed <= 0 && direction == -1) || (fanSpeed >= 3 && direction == 1)) {
     debugPrintln("Fan is already at min or max");
   } else {
     debugPrint("Adjusting fan: ");
