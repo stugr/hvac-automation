@@ -1,4 +1,6 @@
-#include <ESP8266WiFi.h> 
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <uri/UriBraces.h>
 #include "config-wifi.h"
 
 const int upPin = 5;
@@ -15,8 +17,9 @@ int fanSpeed = 0;
 const int fanSpeedLowerBound = 0;
 const int fanSpeedUpperBound = 3;
 
-// TODO: change to use ESP8266WebServer
-WiFiServer server(80);
+String serverMsg = "";
+
+ESP8266WebServer server(80);
 
 void setup() {
   Serial.begin(9600);
@@ -37,59 +40,50 @@ void setup() {
   }
   Serial.println("");
   Serial.println("WiFi connected"); 
-  server.begin();
+  
   Serial.println("Server started");
   Serial.print("Use this URL to connect: ");
   Serial.print("http://");
   Serial.print(WiFi.localIP());
   Serial.println("/");
+
+  server.on("/", HTTP_GET, handleRoot);
+  server.on(UriBraces("/FAN{}"), HTTP_GET, handleFan);
+  //, fanButton(1));
+  //server.on("/FANDOWN", HTTP_GET, fanButton(-1));
+  server.onNotFound(handleNotFound);
+
+  server.begin();
 }
 
-WiFiClient client;
-
 void loop() {
+  server.handleClient();
+}
 
-  client = server.available();
-  if (!client) {
-    return;
+void handleRoot() {
+  debugPrint("Fan is currently set to: ");
+  debugPrintln(fanSpeed);
+  fanForm();
+  serverRespond();
+}
+
+void handleNotFound() {
+  server.send(404, "text/html", "404 mate");
+}
+
+void handleFan() {
+  String req = server.pathArg(0);
+  if (req == "UP") {
+    fanButton(1);
+  } else if (req == "DOWN") {
+    fanButton(-1);
   } else {
-    //Serial.println("new client");
-    while(!client.available()){
-      delay(1);
-    } 
-    String request = client.readStringUntil('\r');
-
-    // ignore favicon requests
-    if (request.indexOf("/favicon.ico") != -1) {
-      return;
-    }
-    
-    Serial.println(request);
-    client.flush(); 
-    int value = LOW;
-    
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println(""); 
-    client.println("");
-    client.println("");
-
-    debugPrint("Fan is currently set to: ");
-    debugPrintln(fanSpeed);
-
-    // fan changes
-    if (request.indexOf("/FAN=UP") != -1)  {
-      fanButton(1);
-    }
-    if (request.indexOf("/FAN=DOWN") != -1)  {
-      fanButton(-1);
-    }
-  
-    client.println(" ");
-    delay(1);
-    Serial.println("Client disconnected");
-    Serial.println("");
+    handleNotFound();
   }
+}
+
+void fanForm() {
+  addServerMsg("<br /><form action=\"/FANUP\" method=\"GET\"><input type=\"submit\" value=\"FAN UP\"></form><form action=\"/FANDOWN\" method=\"GET\"><input type=\"submit\" value=\"FAN DOWN\"></form>");
 }
 
 void fanButton(int direction) {
@@ -115,17 +109,29 @@ void fanButton(int direction) {
     debugPrint("New speed: ");
     debugPrintln(fanSpeed);
   }
+
+  fanForm();
+  serverRespond();
 }
 
 template<class T> void debugPrint(T param)
 {
   Serial.print(param);
-  client.print(param);
+  addServerMsg(String(param));
 }
 
 template<class T> void debugPrintln(T param)
 {
   Serial.println(param);
-  client.print(param);
-  client.println("<br />");
+  addServerMsg(String(param));
+  addServerMsg("<br />");
+}
+
+void addServerMsg(String msg) {
+  serverMsg += msg;
+}
+
+void serverRespond() {
+  server.send(200, "text/html", serverMsg);
+  serverMsg = "";
 }
