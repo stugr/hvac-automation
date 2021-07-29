@@ -1,8 +1,8 @@
 #include <ESP8266WiFi.h> 
 #include "config-wifi.h"
 
-int upPin = 5;
-int downPin = 4; // TODO: deal with weak pull up on reset
+const int upPin = 5;
+const int downPin = 4; // TODO: deal with weak pull up on reset
 
 // wifi
 const char* ssid = WIFI_SSID;
