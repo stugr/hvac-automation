@@ -11,6 +11,10 @@ const char* password = WIFI_PASSWORD;
 // TODO: read starting speed from EEPROM
 int fanSpeed = 0;
 
+// fan speed bounds
+const int fanSpeedLowerBound = 0;
+const int fanSpeedUpperBound = 3;
+
 // TODO: change to use ESP8266WebServer
 WiFiServer server(80);
 
@@ -90,7 +94,8 @@ void loop() {
 
 void fanButton(int direction) {
   // if already at upper or lower bounds (0-3) don't do anything
-  if ((fanSpeed <= 0 && direction == -1) || (fanSpeed >= 3 && direction == 1)) {
+  int requestedFanSpeed = constrain(fanSpeed + direction, fanSpeedLowerBound, fanSpeedUpperBound);
+  if (requestedFanSpeed == fanSpeed) {
     debugPrintln("Fan is already at min or max");
   } else {
     debugPrint("Adjusting fan: ");
@@ -105,7 +110,7 @@ void fanButton(int direction) {
     delay(100); // TODO: test lower values (10 was too low)
     digitalWrite(thePin, LOW);
 
-    fanSpeed += direction;
+    fanSpeed = requestedFanSpeed;
 
     debugPrint("New speed: ");
     debugPrintln(fanSpeed);
